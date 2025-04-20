@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cardiorxiv | The Cardiovascular Preprint Server</title>
+  <!-- TailwindCSS (play CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Icon library (Heroicons) -->
+  <script src="https://unpkg.com/feather-icons"></script>
+  <!-- Supabase UMD build -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.6/+esm" defer></script>
+  <style>
+    /* Custom scrollbar for better UX */
+    ::-webkit-scrollbar{height:6px;width:6px}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
+  </style>
+</head>
+<body class="min-h-screen bg-slate-50 text-gray-900 flex flex-col">
+  <!-- ====== Header / Navbar ====== -->
+  <header class="bg-white shadow-sm sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
+      <a href="/" class="flex items-center gap-2 font-semibold text-rose-600">
+        <img src="/logo.svg" alt="cardiorxiv logo" class="h-8 w-auto" />
+        cardiorxiv
+      </a>
+      <nav class="hidden md:flex gap-6 text-sm">
+        <a href="/about.html" class="hover:text-rose-600">About</a>
+        <a href="/submit.html" class="hover:text-rose-600">Submit</a>
+        <a href="/policies.html" class="hover:text-rose-600">Policies</a>
+      </nav>
+      <!-- Search box -->
+      <div class="relative w-56 md:w-72">
+        <input id="searchInput" type="search" placeholder="Search preprints…" class="w-full pl-10 pr-3 py-2 text-sm border rounded-md focus:ring-rose-600 focus:border-rose-600" />
+        <span class="absolute left-3 top-2.5" data-feather="search"></span>
+        <div id="suggestions" class="absolute inset-x-0 top-full bg-white shadow-lg rounded-b-md text-sm hidden max-h-72 overflow-y-auto"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ====== Main content ====== -->
+  <main class="flex-1">
+    <!-- Hero Banner -->
+    <section class="bg-rose-50 py-16">
+      <div class="max-w-4xl mx-auto text-center px-4">
+        <h1 class="text-3xl md:text-5xl font-bold text-rose-600 mb-4">Rapidly share cardiovascular science</h1>
+        <p class="text-lg text-gray-700">cardiorxiv is a free online archive and distribution service for preliminary research outputs in cardiology and vascular medicine.</p>
+      </div>
+    </section>
+
+    <!-- Subject Areas -->
+    <section class="py-12" id="subjectsSection">
+      <div class="max-w-6xl mx-auto px-4">
+        <h2 class="text-2xl font-semibold mb-6">Browse by Subject</h2>
+        <div id="subjectsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
+      </div>
+    </section>
+
+    <!-- Latest Preprints -->
+    <section class="py-12 bg-slate-100" id="latestSection">
+      <div class="max-w-6xl mx-auto px-4">
+        <h2 class="text-2xl font-semibold mb-6">Latest Preprints</h2>
+        <ul id="latestList" class="space-y-6"></ul>
+      </div>
+    </section>
+  </main>
+
+  <!-- ====== Footer ====== -->
+  <footer class="bg-white border-t py-6 text-sm text-gray-600">
+    <div class="max-w-6xl mx-auto px-4 flex flex-col md:flex-row justify-between">
+      <p>© <span id="year"></span> cardiorxiv</p>
+      <p>
+        Built with ❤️ using <a href="https://supabase.com" class="text-rose-600 hover:underline">Supabase</a> &amp; <a href="https://pages.cloudflare.com" class="text-rose-600 hover:underline">Cloudflare Pages</a>
+      </p>
+    </div>
+  </footer>
+
+  <!-- ====== JavaScript ====== -->
+  <script>
+    // Replace with your own keys (store in env for production via Pages)
+    const SUPABASE_URL = "https://your-project.supabase.co";
+    const SUPABASE_ANON = "public-anon-key";
+
+    // Wait for supabase-js to load (UMD exposes global supabase)
+    window.addEventListener("DOMContentLoaded", async () => {
+      feather.replace(); // icons
+
+      const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+      // 1. Load subjects for grid
+      const { data: subjects, error: subjErr } = await sb.from("subjects").select("id, name").order("name");
+      if (subjErr) console.error(subjErr);
+      const grid = document.getElementById("subjectsGrid");
+      subjects?.forEach(s => {
+        const a = document.createElement("a");
+        a.href = `/search.html?subject=${encodeURIComponent(s.id)}`;
+        a.className = "block bg-white border rounded-md p-4 hover:bg-rose-50";
+        a.textContent = s.name;
+        grid.appendChild(a);
+      });
+
+      // 2. Load latest preprints
+      const { data: latest, error: latErr } = await sb.rpc("latest_preprints", { limit: 10 });
+      if (latErr) console.error(latErr);
+      const list = document.getElementById("latestList");
+      latest?.forEach(p => {
+        const li = document.createElement("li");
+        li.innerHTML = `
+          <a href="/preprint.html?id=${p.id}" class="block bg-white p-4 rounded-md shadow hover:shadow-md transition">
+            <h3 class="font-semibold text-lg mb-1">${p.title}</h3>
+            <p class="text-gray-600 line-clamp-2 mb-1">${p.abstract.slice(0, 150)}…</p>
+            <span class="text-xs text-gray-500">${new Date(p.posted_at).toLocaleDateString()}</span>
+          </a>`;
+        list.appendChild(li);
+      });
+
+      // 3. Search autocomplete
+      const searchInput = document.getElementById("searchInput");
+      const suggestions = document.getElementById("suggestions");
+
+      let searchTimeout;
+      searchInput.addEventListener("input", () => {
+        clearTimeout(searchTimeout);
+        const q = searchInput.value.trim();
+        if (!q) return suggestions.classList.add("hidden");
+        searchTimeout = setTimeout(async () => {
+          const { data, error } = await fetch(`/api/search?q=${encodeURIComponent(q)}`).then(r => r.json());
+          if (error) return console.error(error);
+          suggestions.innerHTML = data.map(r => `<a href="/preprint.html?id=${r.id}" class="block px-4 py-2 hover:bg-slate-100">${r.title}</a>`).join("");
+          suggestions.classList.toggle("hidden", !data.length);
+        }, 300);
+      });
+
+      document.getElementById("year").textContent = new Date().getFullYear();
+    });
+  </script>
+</body>
+</html>

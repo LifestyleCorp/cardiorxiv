@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cardiorxiv | Preprint</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Feather Icons -->
+  <script src="https://unpkg.com/feather-icons"></script>
+  <!-- Supabase JS UMD -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.42.4/+esm"></script>
+</head>
+<body class="bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+  <!-- Header -->
+  <header class="bg-white dark:bg-gray-800 shadow">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
+      <a href="/" class="flex items-center space-x-2">
+        <img src="/public/logo.svg" alt="cardiorxiv" class="h-8 w-auto">
+        <span class="font-semibold text-xl tracking-tight">cardiorxiv</span>
+      </a>
+      <nav class="hidden md:flex space-x-6">
+        <a href="/" class="hover:underline">Home</a>
+        <a href="/pages/submit.html" class="hover:underline">Submit</a>
+        <a href="https://www.medrxiv.org/about" target="_blank" class="hover:underline">About</a>
+      </nav>
+      <button id="themeToggle" class="md:hidden p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">
+        <i data-feather="moon"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+    <!-- Loading placeholder -->
+    <div id="loading" class="text-center py-20">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+      <p class="mt-4">Loading preprint…</p>
+    </div>
+
+    <!-- Preprint container -->
+    <article id="preprint" class="hidden space-y-8">
+      <!-- Title & Meta -->
+      <section>
+        <h1 id="title" class="text-3xl font-bold mb-2"></h1>
+        <p id="authors" class="text-sm text-gray-600 dark:text-gray-400"></p>
+        <p id="posted" class="text-xs text-gray-500 dark:text-gray-500"></p>
+      </section>
+
+      <!-- Abstract -->
+      <section>
+        <h2 class="text-xl font-semibold mb-2">Abstract</h2>
+        <p id="abstract" class="whitespace-pre-line leading-relaxed"></p>
+      </section>
+
+      <!-- PDF & Versions -->
+      <section class="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
+        <h3 class="text-lg font-semibold mb-2">Download</h3>
+        <a id="pdfLink" href="#" target="_blank" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded">
+          <i data-feather="download" class="mr-2"></i> PDF
+        </a>
+        <h4 class="mt-4 font-medium">Versions</h4>
+        <ul id="versions" class="list-disc list-inside text-sm mt-1"></ul>
+      </section>
+
+      <!-- Subject & DOI -->
+      <section class="flex flex-col sm:flex-row sm:space-x-8 text-sm">
+        <div>
+          <h4 class="font-medium">Subject Area</h4>
+          <p id="subject"></p>
+        </div>
+        <div>
+          <h4 class="font-medium">DOI</h4>
+          <p id="doi"></p>
+        </div>
+      </section>
+
+      <!-- Comments placeholder (future realtime) -->
+      <section id="comments" class="border-t pt-6">
+        <h2 class="text-xl font-semibold mb-4">Comments</h2>
+        <p class="text-gray-500">Coming soon — realtime discussion powered by Supabase Realtime.</p>
+      </section>
+    </article>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white dark:bg-gray-800 border-t dark:border-gray-700 py-6 mt-12">
+    <div class="max-w-7xl mx-auto px-4 text-center text-sm text-gray-500 dark:text-gray-400">
+      © 2025 cardiorxiv. All rights reserved.
+    </div>
+  </footer>
+
+  <script>
+    // Feather icons
+    feather.replace();
+
+    // Dark mode toggle
+    const themeToggle = document.getElementById('themeToggle');
+    const darkClass = 'dark';
+    themeToggle?.addEventListener('click', () => {
+      document.documentElement.classList.toggle(darkClass);
+    });
+
+    // Supabase init (replace placeholders)
+    const SUPABASE_URL = 'https://your-project.supabase.co';
+    const SUPABASE_ANON_KEY = 'public-anon-key';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Utils
+    function qs(name) {
+      const url = new URL(window.location.href);
+      return url.searchParams.get(name);
+    }
+
+    // Fetch preprint by ID (uuid)
+    const preprintId = qs('id');
+    if (!preprintId) {
+      document.getElementById('loading').innerText = 'Missing preprint ID';
+      throw new Error('No preprint ID in URL');
+    }
+
+    async function loadPreprint() {
+      const { data, error } = await sb
+        .from('preprints')
+        .select(`id, title, abstract, posted_at, doi, subjects(name), versions(id, pdf_url, posted_at), preprint_authors(author:authors(name))`)
+        .eq('id', preprintId)
+        .single();
+
+      if (error) {
+        console.error(error);
+        document.getElementById('loading').innerText = 'Error loading preprint';
+        return;
+      }
+
+      renderPreprint(data);
+    }
+
+    function renderPreprint(pp) {
+      document.getElementById('title').innerText = pp.title;
+
+      // Authors list
+      const authors = pp.preprint_authors?.map(a => a.author.name).join(', ');
+      document.getElementById('authors').innerText = authors;
+
+      // Dates
+      const postedDate = new Date(pp.posted_at).toLocaleDateString();
+      document.getElementById('posted').innerText = `Posted: ${postedDate}`;
+
+      // Abstract
+      document.getElementById('abstract').innerText = pp.abstract;
+
+      // Subject
+      document.getElementById('subject').innerText = pp.subjects?.name ?? '—';
+
+      // DOI
+      document.getElementById('doi').innerText = pp.doi ?? 'Not yet assigned';
+
+      // PDF link — latest version
+      const latest = pp.versions.sort((a,b)=> new Date(b.posted_at) - new Date(a.posted_at))[0];
+      document.getElementById('pdfLink').href = latest?.pdf_url;
+
+      // Versions list
+      const vList = document.getElementById('versions');
+      pp.versions.forEach(v => {
+        const li = document.createElement('li');
+        const vDate = new Date(v.posted_at).toLocaleDateString();
+        li.innerHTML = `<a href="${v.pdf_url}" class="text-blue-600 hover:underline" target="_blank">${vDate}</a>`;
+        vList.appendChild(li);
+      });
+
+      // Show article, hide loader
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('preprint').classList.remove('hidden');
+    }
+
+    loadPreprint();
+  </script>
+</body>
+</html>
