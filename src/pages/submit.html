@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cardiorxiv | Submit Preprint</title>
+  <!-- TailwindCSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Feather Icons -->
+  <script src="https://unpkg.com/feather-icons"></script>
+  <!-- Supabase JS UMD -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.5/+umd"></script>
+  <!-- .env‑style injection -->
+<script>
+    window.SUPABASE_URL = 'https://project.supabase.co';
+    window.SUPABASE_ANON_KEY = 'public-anon-key';
+  </script>
+  <script src=\"/src/js/supabaseClient.js\"></script>
+  
+</head>
+<body class="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+  <!-- Header (reuse from index) -->
+  <header class="w-full bg-white/80 dark:bg-gray-800/80 backdrop-blur border-b border-gray-200 dark:border-gray-700 sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto flex items-center justify-between px-4 py-3">
+      <a href="/" class="text-lg font-semibold text-rose-600">cardiorxiv</a>
+      <nav class="hidden sm:flex gap-6 text-sm font-medium">
+        <a href="/search.html" class="hover:text-rose-600">Search</a>
+        <a href="/submit.html" class="text-rose-600 font-semibold">Submit</a>
+      </nav>
+      <button id="auth-btn" class="text-sm px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"></button>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="flex-1 max-w-4xl w-full mx-auto p-6">
+    <h1 class="text-2xl font-bold mb-6 text-gray-800 dark:text-gray-100">Submit a Preprint</h1>
+
+    <!-- Submission Form -->
+    <form id="preprint-form" class="space-y-8" autocomplete="off">
+      <!-- Title -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title<span class="text-rose-600">*</span></label>
+        <input type="text" name="title" required class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" />
+      </div>
+
+      <!-- Authors -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Authors (comma‑separated)<span class="text-rose-600">*</span></label>
+        <input type="text" name="authors" placeholder="Last, First; Last, First" required class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" />
+      </div>
+
+      <!-- Subject Area -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Subject Area<span class="text-rose-600">*</span></label>
+        <select id="subject-select" name="subject_id" required class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"></select>
+      </div>
+
+      <!-- Keywords -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Keywords (semicolon‑separated)</label>
+        <input type="text" name="keywords" placeholder="atherosclerosis; imaging; AI" class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" />
+      </div>
+
+      <!-- Abstract -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Abstract<span class="text-rose-600">*</span></label>
+        <textarea name="abstract" rows="8" required class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"></textarea>
+      </div>
+
+      <!-- License Select -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">License<span class="text-rose-600">*</span></label>
+        <select name="license" required class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100">
+          <option value="">Choose license</option>
+          <option value="CC-BY-4.0">CC‑BY 4.0</option>
+          <option value="CC-BY-NC-ND-4.0">CC‑BY‑NC‑ND 4.0</option>
+          <option value="US-GOV">US Gov (public domain)</option>
+        </select>
+      </div>
+
+      <!-- PDF Upload -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">PDF File<span class="text-rose-600">*</span></label>
+        <input type="file" id="pdf-input" name="pdf" accept="application/pdf" required class="w-full file:rounded-md file:border file:border-gray-300 file:bg-white file:text-gray-700 dark:file:bg-gray-800 dark:file:text-gray-100" />
+      </div>
+
+      <!-- Compliance Checkbox -->
+      <div class="flex items-start gap-2">
+        <input type="checkbox" id="compliance" required class="mt-1 rounded" />
+        <label for="compliance" class="text-sm text-gray-700 dark:text-gray-300">I confirm that this work complies with all ethical guidelines and that I have the right to submit it for posting.</label>
+      </div>
+
+      <button type="submit" id="submit-btn" class="w-full sm:w-auto px-6 py-2 bg-rose-600 text-white rounded-md hover:bg-rose-700 disabled:opacity-50">Submit Preprint</button>
+    </form>
+
+    <!-- Success message placeholder -->
+    <div id="success" class="hidden mt-8 p-4 rounded-md bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"></div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="text-center py-6 text-xs text-gray-500 dark:text-gray-400">
+    © 2025 cardiorxiv. All rights reserved.
+  </footer>
+
+  <script>
+    // ----- Supabase Init -----
+    const SUPABASE_URL = "YOUR_SUPABASE_URL";
+    const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ----- Auth Logic -----
+    const authBtn = document.getElementById('auth-btn');
+    const updateAuthUI = async () => {
+      const { data: { user } } = await sb.auth.getUser();
+      if (user) {
+        authBtn.textContent = 'Sign Out';
+      } else {
+        authBtn.textContent = 'Sign In';
+      }
+    };
+    updateAuthUI();
+
+    authBtn.addEventListener('click', async () => {
+      const { data: { user } } = await sb.auth.getUser();
+      if (user) {
+        await sb.auth.signOut();
+        location.reload();
+      } else {
+        const email = prompt('Enter email for magic link:');
+        if (email) {
+          await sb.auth.signInWithOtp({ email });
+          alert('Check your email for the sign‑in link.');
+        }
+      }
+    });
+
+    // ----- Load Subject Areas -----
+    const subjectSelect = document.getElementById('subject-select');
+    const loadSubjects = async () => {
+      const { data, error } = await sb.from('subjects').select('id, name').order('name');
+      if (error) return console.error(error);
+      data.forEach(sub => {
+        const opt = document.createElement('option');
+        opt.value = sub.id;
+        opt.textContent = sub.name;
+        subjectSelect.appendChild(opt);
+      });
+    };
+    loadSubjects();
+
+    // ----- Handle Submission -----
+    const form = document.getElementById('preprint-form');
+    const submitBtn = document.getElementById('submit-btn');
+    const successDiv = document.getElementById('success');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Uploading…';
+
+      // Check user
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) {
+        alert('Please sign in first.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Preprint';
+        return;
+      }
+
+      // Collect form data
+      const fd = new FormData(form);
+      const pdfFile = fd.get('pdf');
+      if (!pdfFile) {
+        alert('PDF file missing');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Preprint';
+        return;
+      }
+
+      try {
+        // 1) Upload PDF to Storage
+        const fileName = `${crypto.randomUUID()}.pdf`;
+        const { data: uploadData, error: uploadError } = await sb.storage.from('preprints').upload(fileName, pdfFile, {
+          contentType: 'application/pdf'
+        });
+        if (uploadError) throw uploadError;
+
+        // 2) Insert preprint row
+        const { data: preprintData, error: insertError } = await sb.from('preprints').insert({
+          title: fd.get('title'),
+          abstract: fd.get('abstract'),
+          license: fd.get('license'),
+          subject_id: fd.get('subject_id'),
+          keywords: fd.get('keywords'),
+          author_string: fd.get('authors'),
+          posted_by: user.id
+        }).select('id').single();
+        if (insertError) throw insertError;
+
+        // 3) Insert first version row
+        const { error: versionError } = await sb.from('versions').insert({
+          preprint_id: preprintData.id,
+          pdf_path: uploadData.path
+        });
+        if (versionError) throw versionError;
+
+        successDiv.textContent = 'Preprint submitted successfully and is now awaiting moderator approval.';
+        successDiv.classList.remove('hidden');
+        form.reset();
+      } catch (err) {
+        console.error(err);
+        alert('Error submitting preprint: ' + err.message);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Preprint';
+      }
+    });
+
+    // Activate icons
+    feather.replace();
+  </script>
+</body>
+</html>

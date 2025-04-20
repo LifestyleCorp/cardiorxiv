@@ -10,6 +10,15 @@
   <script src="https://unpkg.com/feather-icons"></script>
   <!-- Supabase UMD build -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.6/+esm" defer></script>
+  <!-- .env‑style injection -->
+  <script>
+    window.SUPABASE_URL = 'https://project.supabase.co';
+    window.SUPABASE_ANON_KEY = 'public-anon-key';
+  </script>
+  <script src=\"/src/js/supabaseClient.js\"></script>
+  
+  <script src=\"/src/js/search.js\"></script>
+
   <style>
     /* Custom scrollbar for better UX */
     ::-webkit-scrollbar{height:6px;width:6px}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
