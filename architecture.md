@@ -18,18 +18,19 @@ This architecture keeps hosting costs tiny, scales automatically, and remains fu
 ## High‑Level System Diagram (Mermaid)
 
 ```mermaid
-graph TD
-  A[Browser<br>HTML + CSS + JS] -->|GET /| B[Cloudflare Pages CDN]
-  B --> C[Static HTML]
-  C -->|JS fetch| D[Supabase REST API]
-  C -->|/api/search| E[Cloudflare Function<br>(Edge Worker)]
-  D <--> F[Postgres DB<br>+ RLS]
-  D <--> G[Storage (PDF/R2)]
-  E --> D
-  subgraph Supabase Project
-    F
-    G
-  end
+flowchart TD
+    A["Browser<br/>HTML + CSS + JS"] -->|GET /| B["Cloudflare Pages CDN"]
+    B --> C["Static HTML"]
+    C -->|JS fetch| D["Supabase REST API"]
+    C -->|/api/search| E["Cloudflare Function<br/>(Edge Worker)"]
+    D -->|SQL & Auth| F["Postgres DB<br/>+ RLS"]
+    D --> G["Storage (PDF / R2)"]
+    E --> D
+    subgraph "Supabase Project"
+        F
+        G
+    end
+
 ```
 
 *Edge execution keeps search & signed downloads under 150 ms, even at global scale.* citeturn0search2turn0search4
